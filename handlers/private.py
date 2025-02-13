@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import Bot, Router, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatJoinRequest
-from aiogram.filters import ChatMemberUpdatedFilter
+from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter
 from aiogram.exceptions import TelegramBadRequest
 
 private_router = Router()
@@ -44,3 +44,8 @@ async def verify_user(callback: types.CallbackQuery, bot: Bot, group_id: int):
         await callback.message.edit_text("Вы успешно подтвердили, что не бот!")
     except TelegramBadRequest as e:
         print(f"Ошибка: {e}")
+
+
+@private_router.message(Command("help"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привет! Я бот помощник для проверки на человека.")
