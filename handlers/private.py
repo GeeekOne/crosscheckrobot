@@ -23,8 +23,10 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
         # Отправляем сообщение в ЛС пользователя
         await bot.send_message(
             user_id,
-            f"Привет, {event.from_user.first_name}! Чтобы попасть в чат, подтвердите, что вы не бот.",
-            reply_markup=inline_kb
+            f"Привет, {event.from_user.first_name}! Чтобы попасть в чат "
+            "<b>Real_Petrovskii Днепр чат</b>, подтвердите, что вы не бот 👇",
+            reply_markup=inline_kb,
+            parse_mode="HTML"
         )
     except TelegramBadRequest:
         # Если пользователь запретил отправку сообщений от бота
@@ -41,11 +43,12 @@ async def verify_user(callback: types.CallbackQuery, bot: Bot, group_id: int):
     try:
         # Подтверждаем заявку
         await bot.approve_chat_join_request(group_id, user_id)
-        await callback.message.edit_text("Вы успешно подтвердили, что не бот!")
+        await callback.message.edit_text(
+            "Вы успешно прошли проверку, добро пожаловать в чат нашего района ⚡")
     except TelegramBadRequest as e:
         print(f"Ошибка: {e}")
 
 
 @private_router.message(Command("help"))
 async def cmd_start(message: types.Message):
-    await message.answer("Привет! Я бот помощник для проверки на человека.")
+    await message.answer("Привет, я бот помощник для фильтрации спама в чате 👀")
