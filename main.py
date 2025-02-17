@@ -4,12 +4,11 @@ import betterlogging as bl
 import aiohttp
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.redis import RedisStorage
-from redis.asyncio import Redis
 
 from config import Config, load_config
 from database.db import init_db, close_db, async_session
 from utils.session import SessionMiddleware
+from utils.service import scheduler
 from handlers.private import private_router
 from handlers.posts import posts_router
 
@@ -20,9 +19,8 @@ async def on_startup():
     logging.info("База данных инициализирована")
 
 
-async def on_shutdown(bot: Bot, redis: Redis, session: aiohttp.ClientSession):
+async def on_shutdown(bot: Bot, session: aiohttp.ClientSession):
     """Функция завершения работы, закрытие соединений."""
-    await redis.close()
     await bot.session.close()  # Закрываем сессию бота
     if not session.closed:
         await session.close()
@@ -33,12 +31,9 @@ async def main():
     bl.basic_colorized_config(level=logging.INFO)
 
     config: Config = load_config('.env')
-    bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
+    bot = Bot(token=config.tg_bot.token)
 
-    redis = Redis(host="localhost", port=6379, db=0)
-    storage = RedisStorage(redis)
-
-    dp = Dispatcher(storage=storage)
+    dp = Dispatcher()
     dp.message.middleware(SessionMiddleware())
 
     session = aiohttp.ClientSession()  # Создаем сессию aiohttp
@@ -53,6 +48,8 @@ async def main():
     dp.include_router(posts_router)
 
     await on_startup()  # Инициализируем БД перед стартом бота
+
+    scheduler.start()
     try:
         await dp.start_polling(bot)
     finally:
