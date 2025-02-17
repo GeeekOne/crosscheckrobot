@@ -10,6 +10,7 @@ from database.db import init_db, close_db, async_session
 from utils.session import SessionMiddleware
 from utils.service import scheduler
 from handlers.private import private_router
+from handlers.group import group_router
 from handlers.posts import posts_router
 
 
@@ -43,7 +44,7 @@ async def main():
         'group_id': config.tg_bot.group_id
         })
 
-    # dp.include_router(group.group_router)
+    dp.include_router(group_router)
     dp.include_router(private_router)
     dp.include_router(posts_router)
 
