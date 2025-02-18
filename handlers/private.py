@@ -100,3 +100,5 @@ async def verify_user(callback: types.CallbackQuery, bot: Bot, group_id: int):
 @private_router.message(Command("about"))
 async def cmd_start(message: types.Message):
     await message.answer("Привет, я бот помощник по администрированию чата 👀")
+
+
