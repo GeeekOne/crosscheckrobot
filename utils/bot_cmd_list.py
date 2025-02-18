@@ -1,5 +1,5 @@
 from aiogram.types import BotCommand
 
 private = [
-    BotCommand(command='help', description="Помощь"),
+    BotCommand(command='about', description="Обо мне"),
 ]
