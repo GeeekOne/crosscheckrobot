@@ -3,7 +3,7 @@ import logging
 import betterlogging as bl
 import aiohttp
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 
 from config import Config, load_config
 from database.db import init_db, close_db, async_session
@@ -12,6 +12,7 @@ from utils.service import scheduler
 from handlers.private import private_router
 from handlers.group import group_router
 from handlers.posts import posts_router
+from utils.bot_cmd_list import private
 
 
 async def on_startup():
@@ -51,6 +52,8 @@ async def main():
     await on_startup()  # Инициализируем БД перед стартом бота
 
     scheduler.start()
+    await bot.set_my_commands(commands=private, scope=types.BotCommandScopeAllPrivateChats())
+    await bot.delete_webhook(drop_pending_updates=True)
     try:
         await dp.start_polling(bot)
     finally:
