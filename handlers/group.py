@@ -7,6 +7,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 group_router = Router()
 
+
 # Удаление сообщений о входе в чат
 @group_router.message(F.new_chat_members)
 async def delete_join_message(message: types.Message):
@@ -18,30 +19,6 @@ async def delete_join_message(message: types.Message):
 async def delete_leave_message(message: types.Message):
     await message.delete()
 
-
-# Функции для конвертации времени (например: 10m, 2h, 1d)
-# def parse_time(duration: str):
-#     match = re.match(r"(\d+)([mhd])", duration)
-#     if not match:
-#         return None
-
-#     amount, unit = match.groups()
-#     amount = int(amount)
-
-#     if unit == "m":
-#         return timedelta(minutes=amount)
-#     elif unit == "h":
-#         return timedelta(hours=amount)
-#     elif unit == "d":
-#         return timedelta(days=amount)
-#     return None
-
-# Функция для форматирования имени пользователя
-# def format_user_mention(target_user: types.User) -> str:
-#     if target_user.username:
-#         mention = f"@{target_user.username}"
-#     else:
-#         mention = f'<a href="tg://user?id={target_user.id}">{target_user.full_name}</a>'
 
 # Функция форматирования времени мута
 def format_duration_with_emoji(duration: str) -> str:
@@ -150,3 +127,8 @@ async def unmute_user(message: types.Message, bot: Bot):
 
     except TelegramBadRequest as e:
         await message.reply(f"Ошибка: {e}")
+
+
+# @group_router.message(F.text.lower() == "Правила рекламы")
+# async def add_rules(message: types.Message):
+#     await message.answer()
