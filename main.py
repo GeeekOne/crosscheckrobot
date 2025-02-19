@@ -52,6 +52,7 @@ async def main():
     await on_startup()  # Инициализируем БД перед стартом бота
 
     scheduler.start()
+    # await bot.delete_my_commands(scope=types.BotCommandScopeAllPrivateChats())
     await bot.set_my_commands(commands=private, scope=types.BotCommandScopeAllPrivateChats())
     await bot.delete_webhook(drop_pending_updates=True)
     try:
