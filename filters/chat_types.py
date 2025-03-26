@@ -26,7 +26,7 @@ class IsAdmin(Filter):
                 admin_session = result.scalar()
 
                 if not admin_session:
-                    await message.answer("Группа не подключена. Используйте /connect.")
+                    await message.answer("Группа не подключена. Используйте /start для получения информации.")
                     return False
 
                 group_id = admin_session
