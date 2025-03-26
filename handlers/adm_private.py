@@ -8,11 +8,13 @@ admin_router = Router()
 admin_router.message.filter(types.ChatTypeFilter(['private']), IsAdmin())
 
 
-# @admin_router.message(Command("enable"))
-# async def cmd_enable(message: types.Message, bot: Bot):
-#     ch
+@admin_router.message(Command("res"))
+async def cmd_start(message: types.Message, bot: Bot):
+    botname = await bot.get_my_name()
+    await message.answer("restart now")
 
 
-# @admin_router.message(Command("admin"))
-# async def cmd_admin(message: types.Message):
-#     await message.answer("Настройки бота:")
+@admin_router.message(Command("root"))
+async def cmd_start(message: types.Message, bot: Bot):
+    botname = await bot.get_my_name()
+    await message.answer("root enabled")
