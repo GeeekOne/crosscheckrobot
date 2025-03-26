@@ -129,9 +129,9 @@ async def get_admins(message: types.Message, bot: Bot):
     try:
         await bot.send_message(
             user_id,
-            f"✅ Группа {group_name} зарегистрирована!\n\n"
-            f"🔹 ID вашей группы: `{group_id}`\n"
-            f"Отправь мне команду `/connect {group_id}` чтобы подключить её.",
+            f"✅ Группа {group_name} зарегистрирована\n\n"
+            f"🔹 ID вашей группы: `{group_id}`\n\n"
+            f"⏩ Отправь мне команду для подключения к настройкам группы: `/connect {group_id}`",
             parse_mode="Markdown"
         )
     except TelegramBadRequest:
