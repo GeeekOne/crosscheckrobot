@@ -1,18 +1,20 @@
 import asyncio
+import aiohttp
 import logging
 import betterlogging as bl
-import aiohttp
 
 from aiogram import Bot, Dispatcher, types
 
 from config import Config, load_config
-from database.db import init_db, close_db, async_session
+from database.db import init_db, close_db
 from utils.session import SessionMiddleware
 from utils.service import scheduler
-from handlers.private import private_router
+from utils.bot_cmd_list import private
+
+from handlers.user_private import user_private_router
+from handlers.admin_private import admin_private_router
 from handlers.requests import requests_router
 from handlers.group import group_router
-from utils.bot_cmd_list import private
 
 
 async def on_startup():
@@ -29,6 +31,7 @@ async def on_shutdown(bot: Bot, session: aiohttp.ClientSession):
 
 async def main():
     bl.basic_colorized_config(level=logging.INFO)
+    # bl.basic_colorized_config(level=logging.WARNING)
 
     config: Config = load_config('.env')
     bot = Bot(token=config.tg_bot.token)
@@ -43,7 +46,8 @@ async def main():
         # 'group_id': config.tg_bot.group_id
         })
 
-    dp.include_router(private_router)
+    dp.include_router(user_private_router)
+    dp.include_router(admin_private_router)
     dp.include_router(requests_router)
     dp.include_router(group_router)
 
@@ -54,7 +58,12 @@ async def main():
     await bot.set_my_commands(commands=private, scope=types.BotCommandScopeAllPrivateChats())
     await bot.delete_webhook(drop_pending_updates=True)
     try:
-        await dp.start_polling(bot, allowed_updates=["chat_join_request", "message", "callback_query", "my_chat_member"])
+        await dp.start_polling(bot, allowed_updates=[
+            "chat_join_request",
+            "message",
+            "callback_query",
+            "my_chat_member"
+            ])
     finally:
         await on_shutdown(bot, session)
 
