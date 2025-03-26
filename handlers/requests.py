@@ -58,7 +58,7 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
 
 
             # Запускаем таймер на 30 минут
-            run_time = datetime.utcnow() + timedelta(minutes=group.captcha_timeout)
+            run_time = datetime.now() + timedelta(minutes=group.captcha_timeout)
             job_id = f"reject_{user_id}_{chat_id}"
 
             if not scheduler.get_job(job_id):
