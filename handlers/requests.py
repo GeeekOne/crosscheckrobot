@@ -5,10 +5,10 @@ from sqlalchemy import delete
 from sqlalchemy.future import select
 from aiogram.exceptions import TelegramBadRequest
 
-from database.db import async_session
+# from database.db import async_session
 from database.models import GroupSettings, PendingRequest
-from keyboards.inline import verify_kb
 from utils.service import scheduler
+from keyboards.inline import verify_kb
 
 requests_router = Router()
 
@@ -18,6 +18,7 @@ requests_router = Router()
 
 @requests_router.chat_join_request()
 async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
+    async_session = bot.workflow_data['async_session']
     chat_id = event.chat.id
     user_id = event.from_user.id
 
@@ -28,7 +29,7 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
         group = result.scalar()
 
         if not group or not group.approve_requests or group.captcha_timeout <= 0:
-            print(f"⚠️ Заявки для группы {chat_id} не обрабатываются или капча отключена")
+            # print(f"⚠️ Заявки для группы {chat_id} не обрабатываются или капча отключена")
             return
 
         # Удаляем старую заявку, если она есть
@@ -61,13 +62,20 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
             run_time = datetime.now() + timedelta(minutes=group.captcha_timeout)
             job_id = f"reject_{user_id}_{chat_id}"
 
-            if not scheduler.get_job(job_id):
+            existing_job = scheduler.get_job(job_id)
+            if existing_job:
+                print(f"Задача {job_id} уже существует, не создаём новую.")
+            else:
+            # if not scheduler.get_job(job_id):
+                print(f"[LOG] Добавлена задача {job_id} на {run_time}")
                 scheduler.add_job(
                     reject_request,
+                    # lambda: reject_request(bot, chat_id, user_id, msg.message_id),
                     "date",
                     run_date=run_time,
                     args=[bot, chat_id, user_id, msg.message_id],
-                    id=job_id
+                    id=job_id,
+                    max_instances=1
                 )
 
         except TelegramBadRequest:
@@ -78,6 +86,9 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
 
 # Если пользователь не подтвердил себя
 async def reject_request(bot: Bot, group_id: int, user_id: int, message_id: int):
+    # print(f"Запуск reject_request для user_id={user_id}, group_id={group_id}")
+    async_session = bot.workflow_data['async_session']
+
     async with async_session() as session:
         result = await session.execute(
             select(PendingRequest)
@@ -87,31 +98,39 @@ async def reject_request(bot: Bot, group_id: int, user_id: int, message_id: int)
         request = result.scalar()
 
         if not request:
-            print(f"⚠️ Заявка {user_id} в {group_id} уже удалена.")
+            # print(f"⚠️ Заявка {user_id} в {group_id} уже удалена.")
             return
 
         try:
             # Отклоняем заявку
+            # print("Пытаюсь отклонить заявку через decline_chat_join_request")
             await bot.decline_chat_join_request(group_id, user_id)
+            # print("Отклонение заявки прошло успешно.")
+
+            # Удаляем пользователя из временного хранилища
+            # print("Удаляю запись заявки из БД")
+            await session.execute(
+                    delete(PendingRequest)
+                    .where(PendingRequest.user_id == user_id)
+                    .where(PendingRequest.chat_id == group_id)
+                )
+            await session.commit()
+            # print(f"[LOG]Задача выполнена: удаление заявки {user_id} в {group_id}")
 
             # Уведомляем пользователя
+            # print("Пытаюсь отправить уведомление пользователю о том, что заявка отклонена")
             await bot.edit_message_text(
                 chat_id=user_id,
                 message_id=message_id,
-                text="Вы не подтвердили вход, заявка отклонена 🛑",
+                text="<b>Вы не подтвердили вход, заявка отклонена 🛑</b>",
                 parse_mode="HTML"
             )
+            # print("Уведомление успешно отправлено.")
 
-        except TelegramBadRequest:
-            pass
+        except Exception as e:
+            # Не подавляем ошибку, а логируем её
+            print(f"❌ Ошибка в reject_request для user_id={user_id}, group_id={group_id}: {e}")
 
-        # Удаляем пользователя из временного хранилища
-        await session.execute(
-                delete(PendingRequest)
-                .where(PendingRequest.user_id == user_id)
-                .where(PendingRequest.chat_id == group_id)
-            )
-        await session.commit()
 
 
 # Пользователь подтвердил себя
@@ -119,6 +138,7 @@ async def reject_request(bot: Bot, group_id: int, user_id: int, message_id: int)
 async def verify_user(callback: types.CallbackQuery, bot: Bot):
     user_id = callback.from_user.id
     message_id = callback.message.message_id
+    async_session = bot.workflow_data['async_session']
 
     async with async_session() as session:
         result = await session.execute(
@@ -130,7 +150,7 @@ async def verify_user(callback: types.CallbackQuery, bot: Bot):
         request = result.scalar()
 
         if not request:
-            await callback.answer("❌ Ошибка: заявка не найдена!")
+            await callback.answer("❌ Ошибка: заявка не найдена или время истекло!")
             return
 
         group_id = request.chat_id

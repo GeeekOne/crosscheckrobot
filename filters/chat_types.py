@@ -1,9 +1,9 @@
-from aiogram import types
+from aiogram import Bot, types
 from aiogram.filters import Filter
 from sqlalchemy.future import select
 
 
-from database.db import async_session
+# from database.db import async_session
 from database.models import GroupSettings, AdminSession
 
 class ChatTypeFilter(Filter):
@@ -14,8 +14,9 @@ class ChatTypeFilter(Filter):
         return message.chat.type in self.chat_types
 
 class IsAdmin(Filter):
-    async def __call__(self, message: types.Message) -> bool:
+    async def __call__(self, message: types.Message, bot: Bot) -> bool:
         user_id = message.from_user.id
+        async_session = bot.workflow_data['async_session']
 
         async with async_session() as session:
             try:

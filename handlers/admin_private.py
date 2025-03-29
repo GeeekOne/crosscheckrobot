@@ -8,7 +8,7 @@ from aiogram.types import ReplyKeyboardRemove
 
 
 from filters.chat_types import ChatTypeFilter, IsAdmin
-from database.db import async_session
+# from database.db import async_session
 from database.models import GroupSettings, AdminSession
 from keyboards.inline import admin_control_keyboard
 from keyboards.reply import kb_admin
@@ -45,36 +45,37 @@ async def cancel_handler(message: types.Message, state: FSMContext) -> None:
     await message.answer("Действие отменено", reply_markup=kb_admin)
 
 
-@admin_private_router.message(Command("connect"))
-async def connect_group(message: types.Message):
-    user_id = message.from_user.id
-    text = message.text.strip()
+# @admin_private_router.message(Command("connect"))
+# async def connect_group(message: types.Message, bot: Bot):
+#     user_id = message.from_user.id
+#     text = message.text.strip()
+#     async_session = bot.workflow_data['async_session']
 
-    # Проверка правильности команды
-    if not text.startswith("/connect -"):
-        await message.answer("❌ Неверный формат команды. Используйте: `/connect -100..`")
-        return
+#     # Проверка правильности команды
+#     if not text.startswith("/connect -"):
+#         await message.answer("❌ Неверный формат команды. Используйте: `/connect -100..`")
+#         return
 
-    try:
-        group_id = int(text.split()[1])
-    except (IndexError, ValueError):
-        await message.answer("❌ Некорректный ID группы.")
-        return
+#     try:
+#         group_id = int(text.split()[1])
+#     except (IndexError, ValueError):
+#         await message.answer("❌ Некорректный ID группы.")
+#         return
 
-    # Сохраняем выбранную группу в БД
-    async with async_session() as session:
-        try:
-            await session.merge(AdminSession(admin_id=user_id, group_id=group_id))
-            await session.commit()
+#     # Сохраняем выбранную группу в БД
+#     async with async_session() as session:
+#         try:
+#             await session.merge(AdminSession(admin_id=user_id, group_id=group_id))
+#             await session.commit()
 
-        finally:
-            await session.close()
+#         finally:
+#             await session.close()
 
-    await message.answer(
-        f"✅ Вы подключены к группе с ID {group_id}\n"
-        "⌨️ Теперь вы можете управлять настройками бота через клавиатуру",
-        reply_markup=kb_admin
-        )
+#     await message.answer(
+#         f"✅ Вы подключены к группе с ID {group_id}\n"
+#         "⌨️ Теперь вы можете управлять настройками бота через клавиатуру",
+#         reply_markup=kb_admin
+#         )
 
 
 @admin_private_router.message(F.text.lower() == "админка")
@@ -99,8 +100,9 @@ async def cmd_help_admin(message: types.Message):
 
 @admin_private_router.message(F.text.lower() == "сервисные настройки")
 @admin_private_router.message(Command("settings"))
-async def show_admin_panel(message: types.Message):
+async def show_admin_panel(message: types.Message, bot: Bot):
     user_id = message.from_user.id
+    async_session = bot.workflow_data['async_session']
 
     async with async_session() as session:
         try:
@@ -148,6 +150,7 @@ async def show_admin_panel(message: types.Message):
     ])
 async def handle_admin_callback(callback: types.CallbackQuery, bot: Bot):
     user_id = callback.from_user.id
+    async_session = bot.workflow_data['async_session']
 
     async with async_session() as session:
         try:
@@ -205,8 +208,9 @@ async def set_captcha_time(message: types.Message, state: FSMContext):
 
 
 @admin_private_router.message(SetCaptchaTimeStates.waiting_for_captcha_time)
-async def enter_captcha_time(message: types.Message, state: FSMContext):
+async def enter_captcha_time(message: types.Message, bot: Bot, state: FSMContext):
     user_id = message.from_user.id
+    async_session = bot.workflow_data['async_session']
 
     if not message.text.isdigit():
         await message.answer("⚠️ Введите число от 1 до 60.")
@@ -234,7 +238,10 @@ async def enter_captcha_time(message: types.Message, state: FSMContext):
             group.captcha_timeout = timeout
             await session.commit()
 
-            await message.answer(f"⏳ Время ожидания капчи установлено: {timeout} минут.")
+            await message.answer(
+                f"⏳ Время ожидания капчи установлено: {timeout} минут.",
+                reply_markup=kb_admin
+                )
             await state.clear()
 
         except Exception as e:

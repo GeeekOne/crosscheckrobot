@@ -9,6 +9,7 @@ annotated-types==0.7.0
 anyio==3.7.1
 APScheduler==3.9.1.post1
 async-timeout==5.0.1
+asyncpg==0.30.0
 attrs==24.2.0
 betterlogging==1.0.0
 cachetools==5.0.0

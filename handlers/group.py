@@ -1,15 +1,13 @@
 from aiogram import Bot, Router, F, types
 from aiogram.filters import Command
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-# from aiogram.types.chat_member_updated import ChatMemberUpdated
-# from aiogram.enums.chat_member_status import ChatMemberStatus
 from aiogram.types import ChatMemberUpdated
 from aiogram.enums import ChatMemberStatus
 from datetime import timedelta
 from sqlalchemy.future import select
 
 from filters.chat_types import ChatTypeFilter, IsAdmin
-from database.db import async_session
+# from database.db import async_session
 from database.models import GroupSettings
 
 
@@ -20,7 +18,8 @@ group_router.edited_message.filter(ChatTypeFilter(['group', 'supergroup']))
 
 @group_router.my_chat_member()
 async def bot_removed_from_group(event: types.ChatMemberUpdated, bot: Bot):
-    print(f"🔍 ПОЛУЧЕНО СОБЫТИЕ: {event}")
+    # print(f"🔍 ПОЛУЧЕНО СОБЫТИЕ: {event}")
+    async_session = bot.workflow_data['async_session']
     """Удаляет данные о группе, если бота исключили."""
     # Проверяем, что бот был удален
     if event.new_chat_member.user.id == (await bot.get_me()).id:
@@ -53,6 +52,8 @@ async def delete_service_messages(message: types.Message, bot: Bot):
     if message.chat.type != "supergroup":
         return
 
+    async_session = bot.workflow_data['async_session']
+
     async with async_session() as session:
         result = await session.execute(
             select(GroupSettings).where(GroupSettings.group_id == message.chat.id))
@@ -76,6 +77,8 @@ async def get_admins(message: types.Message, bot: Bot):
     if message.chat.type != "supergroup":
         await message.answer("❌Эта команда работает только в супергруппах.")
         return
+
+    async_session = bot.workflow_data['async_session']
 
     group_id = message.chat.id
     group_name = message.chat.title
