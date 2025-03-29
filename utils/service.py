@@ -1,4 +1,4 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
-scheduler = AsyncIOScheduler(timezone="Europe/Kiev")
+scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
