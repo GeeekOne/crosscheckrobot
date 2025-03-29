@@ -75,6 +75,7 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
                     run_date=run_time,
                     args=[bot, chat_id, user_id, msg.message_id],
                     id=job_id,
+                    misfire_grace_time=10,
                     max_instances=1
                 )
 
