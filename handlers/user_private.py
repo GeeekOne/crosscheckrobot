@@ -1,4 +1,4 @@
-from aiogram import Bot, Router, types
+from aiogram import Bot, Router, F, types
 from aiogram.filters import Command, CommandStart
 
 from filters.chat_types import ChatTypeFilter
@@ -19,6 +19,15 @@ async def cmd_start(message: types.Message, bot: Bot):
         "Для начала работы введи в группе команду `/admininit` и следуй инструкциям ℹ️",
         parse_mode="Markdown"
         )
+
+
+@user_private_router.message(F.text.lower() == "поддержка")
+@user_private_router.message(Command("support"))
+async def cmd_help_admin(message: types.Message):
+    await message.answer(
+        "По всем вопросам/предложениям/разработке обращайтесь в @onetechsupbot",
+        parse_mode="HTML"
+    )
 
 
 @user_private_router.message(Command("connect"))
