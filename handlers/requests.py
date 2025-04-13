@@ -5,8 +5,9 @@ from sqlalchemy import delete
 from sqlalchemy.future import select
 from aiogram.exceptions import TelegramBadRequest
 
-# from database.db import async_session
+
 from database.models import GroupSettings, PendingRequest
+from utils.db_utils import save_user_in_db
 from utils.service import scheduler
 from keyboards.inline import verify_kb
 
@@ -87,7 +88,6 @@ async def handle_chat_join_request(event: ChatJoinRequest, bot: Bot):
 
 # Если пользователь не подтвердил себя
 async def reject_request(bot: Bot, group_id: int, user_id: int, message_id: int):
-    # print(f"Запуск reject_request для user_id={user_id}, group_id={group_id}")
     async_session = bot.workflow_data['async_session']
 
     async with async_session() as session:
@@ -99,37 +99,30 @@ async def reject_request(bot: Bot, group_id: int, user_id: int, message_id: int)
         request = result.scalar()
 
         if not request:
-            # print(f"⚠️ Заявка {user_id} в {group_id} уже удалена.")
             return
 
         try:
-            # Отклоняем заявку
-            # print("Пытаюсь отклонить заявку через decline_chat_join_request")
             await bot.decline_chat_join_request(group_id, user_id)
-            # print("Отклонение заявки прошло успешно.")
 
-            # Удаляем пользователя из временного хранилища
-            # print("Удаляю запись заявки из БД")
             await session.execute(
-                    delete(PendingRequest)
-                    .where(PendingRequest.user_id == user_id)
-                    .where(PendingRequest.chat_id == group_id)
-                )
-            await session.commit()
-            # print(f"[LOG]Задача выполнена: удаление заявки {user_id} в {group_id}")
+                delete(PendingRequest)
+                .where(PendingRequest.user_id == user_id)
+                .where(PendingRequest.chat_id == group_id)
+            )
 
-            # Уведомляем пользователя
-            # print("Пытаюсь отправить уведомление пользователю о том, что заявка отклонена")
+            user = await bot.get_chat(user_id)
+            await save_user_in_db(bot, user, passed_captcha=False)
+
+            await session.commit()
+
             await bot.edit_message_text(
                 chat_id=user_id,
                 message_id=message_id,
                 text="<b>Вы не подтвердили вход, заявка отклонена 🛑</b>",
                 parse_mode="HTML"
             )
-            # print("Уведомление успешно отправлено.")
 
         except Exception as e:
-            # Не подавляем ошибку, а логируем её
             print(f"❌ Ошибка в reject_request для user_id={user_id}, group_id={group_id}: {e}")
 
 
@@ -158,7 +151,6 @@ async def verify_user(callback: types.CallbackQuery, bot: Bot):
         job_id = f"reject_{user_id}_{group_id}"
 
         try:
-            # Подтверждаем заявку
             await bot.approve_chat_join_request(group_id, user_id)
             await callback.message.edit_text(
                 "Вы успешно подтвердили вход, добро пожаловать в чат ✅")
@@ -166,12 +158,20 @@ async def verify_user(callback: types.CallbackQuery, bot: Bot):
             if scheduler.get_job(job_id):
                 scheduler.remove_job(job_id)
 
-            # Удаляем заявку из БД
             await session.execute(
                 delete(PendingRequest)
                 .where(PendingRequest.user_id == user_id)
                 .where(PendingRequest.chat_id == group_id)
             )
+
+            await save_user_in_db(
+                bot,
+                callback.from_user,
+                passed_captcha=True,
+                group_id=group_id,
+                group_username=(await bot.get_chat(group_id)).username
+                )
+
             await session.commit()
 
         except TelegramBadRequest as e:

@@ -3,6 +3,7 @@ from aiogram.filters import Command, CommandStart
 
 from filters.chat_types import ChatTypeFilter
 from database.models import AdminSession
+from utils.db_utils import save_user_in_db
 from keyboards.reply import kb_admin
 
 
@@ -12,13 +13,18 @@ user_private_router.message.filter(ChatTypeFilter(['private']))
 
 @user_private_router.message(CommandStart())
 async def cmd_start(message: types.Message, bot: Bot):
+    async_session = bot.workflow_data['async_session']
     botname = await bot.get_my_name()
+
+    async with async_session() as session:
+        await save_user_in_db(bot, message.from_user)
+
     await message.answer(
         f"Привет, я *{botname.name}* 🤖\n"
         "Создан для помощи в администрировании групп 🔧\n"
         "Для начала работы введи в группе команду `/admininit` и следуй инструкциям ℹ️",
         parse_mode="Markdown"
-        )
+    )
 
 
 @user_private_router.message(F.text.lower() == "поддержка")

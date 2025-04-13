@@ -57,7 +57,7 @@ async def main():
     dp.include_router(group_router)
 
     await on_startup(engine)  # Инициализируем БД перед стартом бота
-    
+
     scheduler.start()
     # await bot.delete_my_commands(scope=types.BotCommandScopeAllPrivateChats())
     await bot.set_my_commands(commands=private, scope=types.BotCommandScopeAllPrivateChats())
